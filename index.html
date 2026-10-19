@@ -122,6 +122,16 @@
     .btn.ghost.active, .btn.ghost:hover {
       border-color: var(--accent); color: var(--accent); background: var(--accent-soft);
     }
+    .btn.lyrics {
+      border-color: rgba(167,139,250,0.4);
+      color: var(--purple);
+      background: rgba(167,139,250,0.1);
+      font-weight: 600;
+      width: 100%;
+      margin-top: 4px;
+      padding: 9px 14px;
+    }
+    .btn.lyrics:active { background: rgba(167,139,250,0.2); }
 
     .toolbar {
       display: flex; align-items: center; justify-content: space-between;
@@ -140,7 +150,6 @@
 
     .status-bar { font-size: 0.72rem; color: var(--muted); padding: 0 2px 8px; min-height: 1.2em; }
     .status-bar.error { color: var(--danger); }
-    .status-bar.ok { color: var(--green); }
 
     .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
     @media (min-width: 560px) { .grid { grid-template-columns: repeat(2, 1fr); } }
@@ -202,6 +211,58 @@
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+    /* ===== Lyrics Viewer Modal ===== */
+    .lyrics-modal {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.92);
+      display: none; flex-direction: column;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .lyrics-modal.open { display: flex; }
+    .lyrics-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px; gap: 10px; flex-shrink: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .lyrics-header .title {
+      font-size: 0.95rem; font-weight: 600; flex: 1;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .lyrics-header .close {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.15); background: transparent;
+      color: #fff; font-size: 1.2rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lyrics-body {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 12px; display: flex; flex-direction: column; gap: 12px;
+      align-items: center;
+    }
+    .lyrics-body img {
+      width: 100%; max-width: 640px; height: auto;
+      border-radius: 8px; background: #111;
+      display: block;
+    }
+    .lyrics-status {
+      color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center;
+    }
+    .lyrics-nav {
+      display: flex; align-items: center; justify-content: center;
+      gap: 16px; padding: 10px 14px;
+      border-top: 1px solid rgba(255,255,255,0.08); flex-shrink: 0;
+    }
+    .lyrics-nav .page {
+      font-size: 0.85rem; color: var(--muted); min-width: 60px; text-align: center;
+    }
+    .lyrics-nav button {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06);
+      color: #fff; font-size: 1.1rem; cursor: pointer;
+    }
+    .lyrics-nav button:disabled { opacity: 0.3; cursor: default; }
+
     @media (max-width: 480px) { .filter-item { flex: 1 1 calc(50% - 8px); } }
   </style>
 </head>
@@ -211,7 +272,7 @@
       <h1>🎻 <span>金色のコルダ 歌曲</span></h1>
       <div class="title-actions">
         <button class="icon-btn" id="btnRefresh" type="button" title="更新資料" aria-label="更新資料">
-          <svg id="refreshIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10"></polyline>
             <polyline points="1 20 1 14 7 14"></polyline>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
@@ -279,16 +340,38 @@
   <button id="toTop" type="button" aria-label="回到頂部">↑</button>
   <div class="toast" id="toast"></div>
 
+  <!-- Lyrics Modal -->
+  <div class="lyrics-modal" id="lyricsModal" role="dialog" aria-modal="true">
+    <div class="lyrics-header">
+      <div class="title" id="lyricsTitle">歌詞</div>
+      <button class="close" id="lyricsClose" type="button" aria-label="關閉">×</button>
+    </div>
+    <div class="lyrics-body" id="lyricsBody">
+      <div class="lyrics-status">載入中…</div>
+    </div>
+    <div class="lyrics-nav">
+      <button type="button" id="lyricsPrev" aria-label="上一張">‹</button>
+      <div class="page" id="lyricsPage">—</div>
+      <button type="button" id="lyricsNext" aria-label="下一張">›</button>
+    </div>
+  </div>
+
   <script>
     const CSV_URL = './Songlist.csv';
-    const CACHE_KEY = 'corda_songs_v1';
-    const CACHE_TIME_KEY = 'corda_songs_time_v1';
+    const LYRIC_DIR = './lyricpic/';
+    const CACHE_KEY = 'corda_songs_v2';
+    const CACHE_TIME_KEY = 'corda_songs_time_v2';
+    const MAX_LYRIC_PAGES = 30;
 
     let SONGS = [];
     let query = '';
     let seriesFilter = '';
     let singerFilter = '';
     let sortBy = 'name';
+
+    // lyrics viewer state
+    let lyricImages = [];
+    let lyricIndex = 0;
 
     const qEl = document.getElementById('q');
     const clearBtn = document.getElementById('clearBtn');
@@ -304,6 +387,13 @@
     const statusEl = document.getElementById('status');
     const lastUpdateEl = document.getElementById('lastUpdate');
     const toastEl = document.getElementById('toast');
+    const lyricsModal = document.getElementById('lyricsModal');
+    const lyricsBody = document.getElementById('lyricsBody');
+    const lyricsTitle = document.getElementById('lyricsTitle');
+    const lyricsPage = document.getElementById('lyricsPage');
+    const lyricsPrev = document.getElementById('lyricsPrev');
+    const lyricsNext = document.getElementById('lyricsNext');
+    const lyricsClose = document.getElementById('lyricsClose');
 
     function toast(msg, ms = 2200) {
       toastEl.textContent = msg;
@@ -351,6 +441,10 @@
 
     function rowsToSongs(rows) {
       if (!rows.length) return [];
+      const header = rows[0].map(h => (h || '').trim().toLowerCase());
+      let lyricsCol = header.indexOf('lyrics');
+      if (lyricsCol < 0) lyricsCol = header.length - 1;
+
       const data = rows.slice(1);
       const songs = [];
       const seen = new Set();
@@ -360,20 +454,27 @@
         const role = (row[1] || '').trim();
         if (songName.startsWith('}') || songName.startsWith('|')) continue;
         if (songName.includes('新增歌曲清單')) continue;
+
         const versions = [];
         for (let i = 2; i < Math.min(row.length, 12); i += 2) {
           const ver = (row[i] || '').trim();
-          const singer = (row[i + 1] || '').trim();
+          const singer = (i + 1 < row.length ? (row[i + 1] || '').trim() : '');
           if (ver || singer) versions.push({ version: ver, singer });
         }
         if (versions.length === 1 && versions[0].version === '新增歌曲清單') continue;
+
         const key = songName.toLowerCase() + '|' + role.toLowerCase();
         if (seen.has(key)) continue;
         seen.add(key);
+
+        let lyrics = '';
+        if (lyricsCol >= 0 && row[lyricsCol]) lyrics = String(row[lyricsCol]).trim();
+
         const clean = songName.startsWith('La Corda-')
           ? songName.slice('La Corda-'.length).replace(/^[\s\-_]+/, '')
           : '';
-        songs.push({ song: songName, role, versions, clean });
+
+        songs.push({ song: songName, role, versions, clean, lyrics });
       }
       return songs;
     }
@@ -456,12 +557,8 @@
           opt.textContent = name + ' (' + cnt + ')';
           fSinger.appendChild(opt);
         });
-      if ([...fSinger.options].some(o => o.value === current)) {
-        fSinger.value = current;
-      } else {
-        fSinger.value = '';
-        singerFilter = '';
-      }
+      if ([...fSinger.options].some(o => o.value === current)) fSinger.value = current;
+      else { fSinger.value = ''; singerFilter = ''; }
     }
 
     function getSeriesTags(song) {
@@ -488,6 +585,7 @@
       if (normalize(song.song).includes(nq)) return true;
       if (song.clean && normalize(song.clean).includes(nq)) return true;
       if (normalize(song.role).includes(nq)) return true;
+      if (song.lyrics && normalize(song.lyrics).includes(nq)) return true;
       for (const v of song.versions) {
         if (normalize(v.version).includes(nq)) return true;
         if (normalize(v.singer).includes(nq)) return true;
@@ -539,7 +637,7 @@
         grid.innerHTML = '<div class="empty"><div class="emoji">📭</div>找不到相關歌曲<br><small>試試其他關鍵字或清除篩選</small></div>';
         return;
       }
-      grid.innerHTML = list.map(s => {
+      grid.innerHTML = list.map((s, idx) => {
         const tags = getSeriesTags(s);
         const badgeHtml = tags.slice(0, 3).map(t =>
           '<span class="badge ' + badgeClass(t) + '">' + t + '</span>'
@@ -548,14 +646,86 @@
           '<div class="ver-row"><div class="v-name">' + highlight(v.version || '—', query) + '</div>' +
           (v.singer ? '<div class="v-singer">' + highlight(v.singer, query) + '</div>' : '') + '</div>'
         ).join('');
+        const lyricsBtn = s.lyrics
+          ? '<button type="button" class="btn lyrics" data-lyrics="' + encodeURIComponent(s.lyrics) + '" data-title="' + encodeURIComponent(s.clean || s.song) + '">📝 歌詞</button>'
+          : '';
         return '<article class="card"><div>' + (badgeHtml || '<span class="badge">歌曲</span>') + '</div>' +
           '<div class="card-title">' + displayTitle(s) + '</div>' +
           (s.role ? '<div class="card-sub">👤 ' + highlight(s.role, query) + '</div>' : '') +
           '<div class="meta"><strong>版本數：</strong>' + s.versions.length + '</div>' +
-          '<div class="ver-list">' + versHtml + '</div></article>';
+          '<div class="ver-list">' + versHtml + '</div>' +
+          lyricsBtn + '</article>';
       }).join('');
     }
 
+    // ===== Lyrics viewer =====
+    function probeImage(url) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(url);
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    }
+
+    async function collectLyricImages(keyword) {
+      const found = [];
+      // try jpeg then jpg for each index
+      for (let n = 1; n <= MAX_LYRIC_PAGES; n++) {
+        let hit = null;
+        for (const ext of ['jpeg', 'jpg', 'png', 'webp']) {
+          const url = LYRIC_DIR + keyword + '_' + n + '.' + ext;
+          hit = await probeImage(url);
+          if (hit) break;
+        }
+        if (!hit) {
+          // if first page missing, stop; if later missing, stop sequence
+          break;
+        }
+        found.push(hit);
+      }
+      return found;
+    }
+
+    function showLyricPage() {
+      if (!lyricImages.length) {
+        lyricsBody.innerHTML = '<div class="lyrics-status">找不到歌詞圖片<br><small>請確認 lyricpic 資料夾及檔名</small></div>';
+        lyricsPage.textContent = '0/0';
+        lyricsPrev.disabled = true;
+        lyricsNext.disabled = true;
+        return;
+      }
+      const url = lyricImages[lyricIndex];
+      lyricsBody.innerHTML = '<img src="' + url + '" alt="歌詞 ' + (lyricIndex + 1) + '" />';
+      lyricsPage.textContent = (lyricIndex + 1) + ' / ' + lyricImages.length;
+      lyricsPrev.disabled = lyricIndex <= 0;
+      lyricsNext.disabled = lyricIndex >= lyricImages.length - 1;
+      lyricsBody.scrollTop = 0;
+    }
+
+    async function openLyrics(keyword, title) {
+      lyricsTitle.textContent = (title || '歌詞') + ' · 歌詞';
+      lyricsBody.innerHTML = '<div class="lyrics-status">載入歌詞圖片中…</div>';
+      lyricsPage.textContent = '—';
+      lyricsPrev.disabled = true;
+      lyricsNext.disabled = true;
+      lyricsModal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      lyricImages = await collectLyricImages(keyword);
+      lyricIndex = 0;
+      showLyricPage();
+      if (!lyricImages.length) toast('找不到「' + keyword + '」的歌詞圖');
+    }
+
+    function closeLyrics() {
+      lyricsModal.classList.remove('open');
+      document.body.style.overflow = '';
+      lyricImages = [];
+      lyricIndex = 0;
+    }
+
+    // Events
     let timer;
     qEl.addEventListener('input', () => {
       clearTimeout(timer);
@@ -583,6 +753,46 @@
       toTop.classList.toggle('show', window.scrollY > 400);
     }, { passive: true });
     toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+    grid.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn.lyrics');
+      if (!btn) return;
+      e.preventDefault();
+      const kw = decodeURIComponent(btn.dataset.lyrics || '');
+      const title = decodeURIComponent(btn.dataset.title || '');
+      if (kw) openLyrics(kw, title);
+    });
+
+    lyricsClose.addEventListener('click', closeLyrics);
+    lyricsPrev.addEventListener('click', () => {
+      if (lyricIndex > 0) { lyricIndex--; showLyricPage(); }
+    });
+    lyricsNext.addEventListener('click', () => {
+      if (lyricIndex < lyricImages.length - 1) { lyricIndex++; showLyricPage(); }
+    });
+    lyricsModal.addEventListener('click', (e) => {
+      if (e.target === lyricsModal) closeLyrics();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (!lyricsModal.classList.contains('open')) return;
+      if (e.key === 'Escape') closeLyrics();
+      if (e.key === 'ArrowLeft') lyricsPrev.click();
+      if (e.key === 'ArrowRight') lyricsNext.click();
+    });
+
+    // swipe on lyrics body
+    let touchX = null;
+    lyricsBody.addEventListener('touchstart', (e) => {
+      touchX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    lyricsBody.addEventListener('touchend', (e) => {
+      if (touchX == null) return;
+      const dx = e.changedTouches[0].screenX - touchX;
+      touchX = null;
+      if (Math.abs(dx) < 50) return;
+      if (dx < 0) lyricsNext.click();
+      else lyricsPrev.click();
+    }, { passive: true });
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
