@@ -6,6 +6,10 @@
   <meta name="theme-color" content="#0b1220" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Corda歌曲" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <title>金色のコルダ 歌曲搜尋</title>
   <style>
     :root {
@@ -20,6 +24,7 @@
       --accent-soft: rgba(59,158,255,0.15);
       --purple: #a78bfa;
       --green: #34d399;
+      --danger: #f87171;
       --radius: 12px;
       --radius-sm: 8px;
     }
@@ -31,6 +36,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
       line-height: 1.45;
       -webkit-font-smoothing: antialiased;
+      overscroll-behavior-y: contain;
     }
     body {
       min-height: 100dvh;
@@ -40,335 +46,184 @@
       padding-top: max(12px, env(safe-area-inset-top));
       padding-bottom: max(32px, env(safe-area-inset-bottom));
     }
-
-    /* ===== Top bar ===== */
     .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 40;
-      background: linear-gradient(180deg, var(--bg) 80%, transparent);
-      padding: 12px 0 8px;
-      margin-bottom: 4px;
+      position: sticky; top: 0; z-index: 40;
+      background: linear-gradient(180deg, var(--bg) 85%, transparent);
+      padding: 10px 0 6px;
     }
     .title-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      gap: 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; margin-bottom: 10px;
     }
-    .title-row h1 {
-      font-size: 1.2rem;
-      font-weight: 700;
-      letter-spacing: 0.01em;
-    }
+    .title-row h1 { font-size: 1.15rem; font-weight: 700; }
     .title-row h1 span {
       background: linear-gradient(90deg, #3b9eff, #a78bfa);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      -webkit-background-clip: text; background-clip: text; color: transparent;
     }
+    .title-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .icon-btn {
+      width: 38px; height: 38px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--panel);
+      color: var(--text); font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background .15s, transform .1s;
+    }
+    .icon-btn:active { transform: scale(0.92); background: var(--card-hover); }
+    .icon-btn.spin svg { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Search */
-    .search-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-    .search-box {
-      flex: 1;
-      position: relative;
-    }
+    .search-row { margin-bottom: 10px; }
+    .search-box { position: relative; }
     .search-box input {
-      width: 100%;
-      padding: 11px 40px 11px 38px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--panel);
-      color: var(--text);
-      font-size: 15px;
-      outline: none;
+      width: 100%; padding: 12px 40px 12px 40px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--panel);
+      color: var(--text); font-size: 16px; outline: none;
       transition: border-color .15s, box-shadow .15s;
     }
     .search-box input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
+      border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
     }
     .search-box input::placeholder { color: var(--muted); }
     .search-box .icon {
-      position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
       color: var(--muted); pointer-events: none; font-size: 14px;
     }
     .search-box .clear {
       position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
       background: none; border: none; color: var(--muted);
-      width: 28px; height: 28px; border-radius: 50%;
+      width: 30px; height: 30px; border-radius: 50%;
       display: none; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 16px;
+      cursor: pointer; font-size: 18px;
     }
     .search-box .clear.show { display: flex; }
 
-    /* Filters row */
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .filter-item {
-      flex: 1 1 140px;
-      min-width: 0;
-    }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+    .filter-item { flex: 1 1 140px; min-width: 0; }
     .filter-item label {
-      display: block;
-      font-size: 0.7rem;
-      color: var(--muted);
-      margin-bottom: 4px;
-      padding-left: 2px;
+      display: block; font-size: 0.68rem; color: var(--muted);
+      margin-bottom: 4px; padding-left: 2px;
     }
     .filter-item select {
-      width: 100%;
-      padding: 9px 28px 9px 12px;
-      border-radius: var(--radius-sm);
+      width: 100%; padding: 10px 28px 10px 12px; border-radius: var(--radius-sm);
       border: 1px solid var(--border);
       background: var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b9bb4' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 10px center;
-      color: var(--text);
-      font-size: 0.85rem;
-      appearance: none;
-      -webkit-appearance: none;
-      outline: none;
-      cursor: pointer;
+      color: var(--text); font-size: 0.85rem; appearance: none; -webkit-appearance: none;
+      outline: none; cursor: pointer;
     }
-    .filter-item select:focus {
-      border-color: var(--accent);
-    }
+    .filter-item select:focus { border-color: var(--accent); }
 
-    .filter-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 4px;
-    }
+    .filter-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 6px 0 2px; }
     .btn {
-      padding: 8px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: all .15s;
-      white-space: nowrap;
+      padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 0.8rem;
+      cursor: pointer; transition: all .15s; white-space: nowrap;
     }
     .btn:active { transform: scale(0.97); }
-    .btn.primary {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff;
-      font-weight: 600;
-    }
-    .btn.ghost:hover, .btn.ghost.active {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--accent-soft);
+    .btn.ghost.active, .btn.ghost:hover {
+      border-color: var(--accent); color: var(--accent); background: var(--accent-soft);
     }
 
-    /* Toolbar */
     .toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 10px 0 12px;
-      flex-wrap: wrap;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 8px 0 12px; flex-wrap: wrap;
     }
-    .toolbar .count {
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-    .toolbar .count strong {
-      color: var(--accent);
-      font-weight: 600;
-    }
-    .toolbar-right {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
+    .toolbar .count { font-size: 0.82rem; color: var(--muted); }
+    .toolbar .count strong { color: var(--accent); font-weight: 600; }
+    .toolbar .meta-info { font-size: 0.7rem; color: var(--muted); opacity: 0.85; }
+    .toolbar-right { display: flex; gap: 8px; align-items: center; }
     .toolbar select {
-      padding: 7px 28px 7px 10px;
-      border-radius: var(--radius-sm);
+      padding: 7px 28px 7px 10px; border-radius: var(--radius-sm);
       border: 1px solid var(--border);
       background: var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b9bb4' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 8px center;
-      color: var(--text);
-      font-size: 0.8rem;
-      appearance: none;
-      -webkit-appearance: none;
-      outline: none;
+      color: var(--text); font-size: 0.8rem; appearance: none; -webkit-appearance: none; outline: none;
     }
 
-    /* ===== Grid ===== */
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-    @media (min-width: 560px) {
-      .grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (min-width: 860px) {
-      .grid { grid-template-columns: repeat(3, 1fr); }
-    }
+    .status-bar { font-size: 0.72rem; color: var(--muted); padding: 0 2px 8px; min-height: 1.2em; }
+    .status-bar.error { color: var(--danger); }
+    .status-bar.ok { color: var(--green); }
 
-    /* Card */
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 560px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 860px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
     .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      transition: border-color .15s, background .15s;
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 14px; display: flex; flex-direction: column; gap: 8px;
+      -webkit-tap-highlight-color: transparent;
     }
     .card:active { background: var(--card-hover); }
 
     .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 9px;
-      border-radius: 999px;
-      font-size: 0.68rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      background: rgba(59,158,255,0.12);
-      color: var(--accent);
-      border: 1px solid rgba(59,158,255,0.25);
-      width: fit-content;
+      display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px;
+      font-size: 0.68rem; font-weight: 600;
+      background: rgba(59,158,255,0.12); color: var(--accent);
+      border: 1px solid rgba(59,158,255,0.25); width: fit-content;
     }
-    .badge.purple {
-      background: rgba(167,139,250,0.12);
-      color: var(--purple);
-      border-color: rgba(167,139,250,0.25);
-    }
-    .badge.green {
-      background: rgba(52,211,153,0.12);
-      color: var(--green);
-      border-color: rgba(52,211,153,0.25);
-    }
-    .badge.orange {
-      background: rgba(251,146,60,0.12);
-      color: #fb923c;
-      border-color: rgba(251,146,60,0.25);
-    }
+    .badge.purple { background: rgba(167,139,250,0.12); color: var(--purple); border-color: rgba(167,139,250,0.25); }
+    .badge.green { background: rgba(52,211,153,0.12); color: var(--green); border-color: rgba(52,211,153,0.25); }
+    .badge.orange { background: rgba(251,146,60,0.12); color: #fb923c; border-color: rgba(251,146,60,0.25); }
 
-    .card-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      line-height: 1.3;
-      word-break: break-word;
-    }
-    .card-sub {
-      font-size: 0.8rem;
-      color: var(--muted);
-      margin-top: -2px;
-    }
+    .card-title { font-size: 1.05rem; font-weight: 700; line-height: 1.3; word-break: break-word; }
+    .card-sub { font-size: 0.8rem; color: var(--muted); margin-top: -2px; }
+    .meta { font-size: 0.78rem; color: var(--muted); }
+    .meta strong { color: #b0becf; font-weight: 500; }
 
-    .tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-    }
-    .tag {
-      padding: 2px 8px;
-      border-radius: 6px;
-      font-size: 0.7rem;
-      background: rgba(255,255,255,0.05);
-      color: var(--muted);
-      border: 1px solid var(--border);
-    }
-
-    .meta {
-      font-size: 0.78rem;
-      color: var(--muted);
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-    .meta strong {
-      color: #b0becf;
-      font-weight: 500;
-    }
-
-    .ver-list {
-      margin-top: 4px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .ver-row {
-      background: rgba(0,0,0,0.25);
-      border-radius: 8px;
-      padding: 7px 10px;
-      font-size: 0.78rem;
-    }
+    .ver-list { margin-top: 2px; display: flex; flex-direction: column; gap: 6px; }
+    .ver-row { background: rgba(0,0,0,0.25); border-radius: 8px; padding: 7px 10px; font-size: 0.78rem; }
     .ver-row .v-name { color: var(--text); font-weight: 500; }
-    .ver-row .v-singer {
-      color: var(--muted);
-      margin-top: 2px;
-      font-size: 0.72rem;
-    }
+    .ver-row .v-singer { color: var(--muted); margin-top: 2px; font-size: 0.72rem; }
     .ver-row .v-singer::before { content: "🎤 "; }
 
-    .highlight {
-      background: rgba(59,158,255,0.35);
-      border-radius: 2px;
-      padding: 0 1px;
-    }
-
-    .empty {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 56px 16px;
-      color: var(--muted);
-    }
+    .highlight { background: rgba(59,158,255,0.35); border-radius: 2px; padding: 0 1px; }
+    .empty { grid-column: 1 / -1; text-align: center; padding: 56px 16px; color: var(--muted); }
     .empty .emoji { font-size: 2.4rem; margin-bottom: 8px; }
+    .loading { grid-column: 1 / -1; text-align: center; padding: 48px 16px; color: var(--muted); }
+    .loading .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; margin: 0 auto 12px; animation: spin 0.7s linear infinite;
+    }
 
     #toTop {
-      position: fixed;
-      right: 16px;
-      bottom: max(20px, env(safe-area-inset-bottom));
-      width: 44px; height: 44px;
-      border-radius: 50%;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      font-size: 1.15rem;
-      box-shadow: 0 4px 18px rgba(59,158,255,0.4);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 50;
+      position: fixed; right: 16px; bottom: max(20px, env(safe-area-inset-bottom));
+      width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff;
+      border: none; font-size: 1.15rem; box-shadow: 0 4px 18px rgba(59,158,255,0.4);
+      display: none; align-items: center; justify-content: center; cursor: pointer; z-index: 50;
+      -webkit-tap-highlight-color: transparent;
     }
     #toTop.show { display: flex; }
 
-    @media (max-width: 480px) {
-      .filter-item { flex: 1 1 calc(50% - 8px); }
+    .toast {
+      position: fixed; left: 50%; bottom: max(80px, calc(env(safe-area-inset-bottom) + 70px));
+      transform: translateX(-50%) translateY(20px);
+      background: #1e293b; color: var(--text); padding: 10px 18px; border-radius: 999px;
+      font-size: 0.85rem; border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 60;
+      white-space: nowrap; max-width: 90vw;
     }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 480px) { .filter-item { flex: 1 1 calc(50% - 8px); } }
   </style>
 </head>
 <body>
   <div class="topbar">
     <div class="title-row">
-      <h1>🎻 <span>金色のコルダ 歌曲搜尋</span></h1>
+      <h1>🎻 <span>金色のコルダ 歌曲</span></h1>
+      <div class="title-actions">
+        <button class="icon-btn" id="btnRefresh" type="button" title="更新資料" aria-label="更新資料">
+          <svg id="refreshIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div class="search-row">
       <div class="search-box">
         <span class="icon">🔍</span>
-        <input id="q" type="search" placeholder="歌名、原文、角色、版本、歌手…" autocomplete="off" enterkeyhint="search" />
+        <input id="q" type="search" placeholder="歌名、角色、版本、歌手…" autocomplete="off" enterkeyhint="search" />
         <button class="clear" id="clearBtn" type="button" aria-label="清除">×</button>
       </div>
     </div>
@@ -404,7 +259,10 @@
   </div>
 
   <div class="toolbar">
-    <div class="count">顯示 <strong id="shown">0</strong> / <span id="total">0</span> 首</div>
+    <div>
+      <div class="count">顯示 <strong id="shown">0</strong> / <span id="total">0</span> 首</div>
+      <div class="meta-info" id="lastUpdate"></div>
+    </div>
     <div class="toolbar-right">
       <select id="sortBy">
         <option value="name">按歌名排序</option>
@@ -414,13 +272,19 @@
     </div>
   </div>
 
-  <div class="grid" id="grid"></div>
+  <div class="status-bar" id="status"></div>
+  <div class="grid" id="grid">
+    <div class="loading"><div class="spinner"></div>載入歌曲資料中…</div>
+  </div>
   <button id="toTop" type="button" aria-label="回到頂部">↑</button>
+  <div class="toast" id="toast"></div>
 
   <script>
-    const SONGS = [{"song":"CRESCENDO","role":"Stella Quintet 5人","versions":[{"version":"星奏学院祭","singer":""},{"version":"星奏学院祭4-140823","singer":""},{"version":"星奏学院祭4-140824","singer":""},{"version":"星奏学院祭5-P4","singer":""}],"clean":""},{"song":"Believe","role":"土浦梁太郎","versions":[{"version":"星奏学院祭","singer":"伊藤健太郎"},{"version":"星奏学院祭6-P2","singer":"伊藤健太郎"}],"clean":""},{"song":"天使の吐息","role":"志水桂一","versions":[{"version":"星奏学院祭","singer":"福山潤"}],"clean":""},{"song":"Sweet Secret","role":"柚木梓馬","versions":[{"version":"星奏学院祭","singer":"岸尾大輔"}],"clean":""},{"song":"明日へのMelody","role":"月森蓮/土浦梁太郎/志水桂一","versions":[{"version":"星奏学院祭","singer":"谷山紀章/伊藤健太郎/福山潤"},{"version":"星奏学院祭4-140823","singer":"谷山紀章/伊藤健太郎/福山潤"}],"clean":""},{"song":"Tip top shape","role":"加地葵","versions":[{"version":"星奏学院祭","singer":"宮野真守"}],"clean":""},{"song":"FINE DAYS ～明日は晴れ!","role":"冬海笙子/天羽菜美/金澤紘人/王崎信武","versions":[{"version":"星奏学院祭","singer":"佐藤朱/増田ゆき/石川英郎/小西克幸"},{"version":"星奏学院祭4-140823","singer":"佐藤朱/増田ゆき/石川英郎/小西克幸"},{"version":"星奏学院祭6-P1","singer":"佐藤朱/増田ゆき/石川英郎/小西克幸"},{"version":"Featuring 4 Schools P1-2","singer":"佐藤朱/増田ゆき/石川英郎/小西克幸"}],"clean":""},{"song":"はじめての気持ち","role":"火原和樹","versions":[{"version":"星奏学院祭","singer":"森田成一"}],"clean":""},{"song":"月の破片","role":"月森蓮","versions":[{"version":"星奏学院祭","singer":"谷山紀章"}],"clean":""},{"song":"Overtune 序曲","role":"Stella Quintet 7人","versions":[{"version":"星奏学院祭","singer":""}],"clean":""},{"song":"Reverie","role":"金澤紘人","versions":[{"version":"星奏学院祭","singer":"石川英郎"}],"clean":""},{"song":"はるかな空へ","role":"王崎信武","versions":[{"version":"星奏学院祭","singer":"小西克幸"}],"clean":""},{"song":"Bouquet 〜微笑みの花束","role":"冬海笙子/天羽菜美","versions":[{"version":"星奏学院祭","singer":"佐藤朱/増田ゆき"},{"version":"星奏学院祭3","singer":"佐藤朱/増田ゆき"},{"version":"星奏学院祭4-140823","singer":"佐藤朱/増田ゆき"},{"version":"Featuring 4 Schools P1-2","singer":"佐藤朱/増田ゆき"}],"clean":""},{"song":"Happy Time","role":"Stella Quintet 5人","versions":[{"version":"星奏学院祭","singer":""}],"clean":""},{"song":"蒼穹のスコア","role":"Stella Quintet","versions":[{"version":"星奏学院祭2","singer":""}],"clean":""},{"song":"AQUA BLUE","role":"月森蓮","versions":[{"version":"星奏学院祭2","singer":"谷山紀章"}],"clean":""},{"song":"Fairy Humming","role":"志水桂一","versions":[{"version":"星奏学院祭2","singer":"福山潤"}],"clean":""},{"song":"W-BLIZZARD","role":"土浦梁太郎/火原和樹","versions":[{"version":"星奏学院祭2","singer":"伊藤健太郎/森田成一"}],"clean":""},{"song":"December Dream","role":"王崎信武/加地葵","versions":[{"version":"星奏学院祭2","singer":"宮野真守/小西克幸"}],"clean":""},{"song":"You're In My Heart","role":"加地葵","versions":[{"version":"星奏学院祭2","singer":"宮野真守"},{"version":"星奏学院祭3","singer":"宮野真守"}],"clean":""},{"song":"AIRSTREAM","role":"土浦梁太郎","versions":[{"version":"星奏学院祭2","singer":"伊藤健太郎"}],"clean":""},{"song":"NIGHT PIECE","role":"吉羅暁彦","versions":[{"version":"星奏学院祭2","singer":"内田夕夜"},{"version":"星奏学院祭4-140824","singer":"内田夕夜"}],"clean":""},{"song":"Hallelujah","role":"Stella Quintet","versions":[{"version":"星奏学院祭2","singer":""},{"version":"星奏学院祭4-140824","singer":""},{"version":"星奏学院祭5-P2-3","singer":""},{"version":"星奏学院祭6-P3","singer":""}],"clean":""},{"song":"After The Rain","role":"王崎信武","versions":[{"version":"星奏学院祭2","singer":"小西克幸"}],"clean":""},{"song":"Clockwork town","role":"金澤紘人/吉羅暁彦","versions":[{"version":"星奏学院祭2","singer":"石川英郎/内田夕夜"},{"version":"星奏学院祭4-140823","singer":"石川英郎/内田夕夜"},{"version":"Featuring 4 Schools P3-4","singer":"石川英郎/内田夕夜"}],"clean":""},{"song":"Corona 光冠","role":"月森蓮/加地葵","versions":[{"version":"星奏学院祭2","singer":"谷山紀章/宮野真守"},{"version":"Featuring 4 Schools P1-2","singer":"谷山紀章/宮野真守"}],"clean":""},{"song":"I CAN MAKE IT","role":"衛藤桐也","versions":[{"version":"星奏学院祭2","singer":"日野聡"},{"version":"星奏学院祭3","singer":"日野聡"}],"clean":""},{"song":"VOYAGE","role":"金澤紘人","versions":[{"version":"星奏学院祭2","singer":"石川英郎"}],"clean":""},{"song":"PRINCESS JEWEL","role":"柚木梓馬","versions":[{"version":"星奏学院祭2","singer":"岸尾大輔"}],"clean":""},{"song":"輝きはダイヤモンド","role":"月森蓮/土浦梁太郎/加地葵","versions":[{"version":"星奏学院祭2","singer":"谷山紀章/伊藤健太郎/宮野真守"},{"version":"星奏学院祭4-140823","singer":"谷山紀章/伊藤健太郎/宮野真守"}],"clean":""},{"song":"Blue sky blue","role":"Maestro Fields","versions":[{"version":"星奏学院祭3","singer":""},{"version":"星奏学院祭4-140823","singer":""},{"version":"Featuring 4 Schools P3-4","singer":""},{"version":"Featuring 神南op2 P2","singer":""},{"version":"Featuring 星奏 P2","singer":""}],"clean":""},{"song":"夢の軌跡","role":"如月律","versions":[{"version":"星奏学院祭3","singer":"小西克幸"},{"version":"星奏学院祭4-140823","singer":"小西克幸"}],"clean":""},{"song":"沈まない夕陽(日不落的夕陽 )","role":"火積司郎","versions":[{"version":"星奏学院祭3","singer":"森田成一"},{"version":"星奏学院祭4-140823","singer":"森田成一"},{"version":"Featuring 至誠館Op2 P1-2","singer":"森田成一"}],"clean":""},{"song":"絶望の挽歌","role":"冥加玲士","versions":[{"version":"星奏学院祭3","singer":"日野聡"},{"version":"星奏学院祭4-140823","singer":"日野聡"},{"version":"星奏学院祭4-140824","singer":"日野聡"},{"version":"星奏学院祭5-P1","singer":"日野聡"}],"clean":""},{"song":"杜の響きを","role":"八木沢雪広","versions":[{"version":"星奏学院祭3","singer":"伊藤健太郎"},{"version":"星奏学院祭5-P2-3","singer":"伊藤健太郎"}],"clean":""},{"song":"お前ってヤツは！(你這傢火)","role":"如月響也","versions":[{"version":"星奏学院祭3","singer":"福山潤"},{"version":"星奏学院祭5-P2-3","singer":"福山潤"}],"clean":""},{"song":"COSMIC LUCKY DAY","role":"加地葵","versions":[{"version":"星奏学院祭3","singer":"宮野真守"},{"version":"Featuring 天音 P1-2","singer":"宮野真守"}],"clean":""},{"song":"＊Spica＊","role":"冬海笙子","versions":[{"version":"星奏学院祭3","singer":"佐藤朱"},{"version":"Featuring 星奏 P2","singer":"佐藤朱"}],"clean":""},{"song":"FATE 〜真冬の太陽","role":"月森蓮/土浦梁太郎","versions":[{"version":"星奏学院祭3","singer":"谷山紀章/伊藤健太郎"},{"version":"星奏学院祭5-P2-3","singer":"谷山紀章/伊藤健太郎"},{"version":"星奏学院祭6-P1","singer":"谷山紀章/伊藤健太郎"}],"clean":""},{"song":"That‘s the life","role":"金澤紘人","versions":[{"version":"星奏学院祭3","singer":"石川英郎"}],"clean":""},{"song":"卒業 〜For You","role":"火原和樹","versions":[{"version":"星奏学院祭3","singer":"森田成一"},{"version":"星奏学院祭4-140824","singer":"森田成一"}],"clean":""},{"song":"WITHOUT END","role":"月森蓮","versions":[{"version":"星奏学院祭3","singer":"谷山紀章"}],"clean":""},{"song":"SHOWTIME！","role":"東金千秋","versions":[{"version":"星奏学院祭3","singer":"谷山紀章"},{"version":"星奏学院祭5-P2-3","singer":"谷山紀章"}],"clean":""},{"song":"Wings to fly","role":"Maester fields","versions":[{"version":"星奏学院祭4-140823","singer":""},{"version":"星奏学院祭4-140824","singer":""},{"version":"星奏学院祭6-P2","singer":""},{"version":"星奏学院祭6-P4","singer":""}],"clean":""},{"song":"To be continued","role":"柚木梓馬","versions":[{"version":"星奏学院祭4-140823","singer":"岸尾大輔"}],"clean":""},{"song":"PRELUDE -青月光","role":"月森蓮","versions":[{"version":"星奏学院祭4-140823","singer":"谷山紀章"}],"clean":""},{"song":"Andante","role":"Stella Quintet","versions":[{"version":"星奏学院祭4-140823","singer":""},{"version":"星奏学院祭4-140824","singer":""},{"version":"Featuring 至誠館 P1-2","singer":""},{"version":"Featuring 至誠館Op2 P1-2","singer":""}],"clean":""},{"song":"LILA LAVANDULA LILA","role":"Maester fields","versions":[{"version":"星奏学院祭4-140823","singer":""},{"version":"Featuring 天音 P1-2","singer":""}],"clean":""},{"song":"Mermaid","role":"加地葵","versions":[{"version":"星奏学院祭4-140823","singer":"宮野真守"}],"clean":""},{"song":"悠かな約束","role":"水嶋悠人","versions":[{"version":"星奏学院祭4-140823","singer":"水橋かおり"},{"version":"星奏学院祭5-P2-3","singer":"水橋かおり"},{"version":"Featuring 星奏 P1","singer":"水橋かおり"}],"clean":""},{"song":"Silver Lining","role":"如月律/榊大地","versions":[{"version":"星奏学院祭4-140823","singer":"小西克幸/内田夕夜"},{"version":"星奏学院祭5-P1","singer":"小西克幸/内田夕夜"},{"version":"星奏学院祭6-P3","singer":"小西克幸/内田夕夜"},{"version":"Featuring 4 Schools P1-2","singer":"小西克幸/内田夕夜"},{"version":"Featuring 星奏 P1","singer":"小西克幸/内田夕夜"}],"clean":""},{"song":"Absinthe -夢幻","role":"土岐蓬生","versions":[{"version":"星奏学院祭4-140823","singer":"石川英郎"}],"clean":""},{"song":"Move","role":"衛藤桐也","versions":[{"version":"星奏学院祭4-140823","singer":"日野聡"},{"version":"星奏学院祭5-P4","singer":"日野聡"}],"clean":""},{"song":"Another revolution 2014","role":"土浦梁太郎","versions":[{"version":"星奏学院祭4-140823","singer":"伊藤健太郎"},{"version":"星奏学院祭4-140824","singer":"伊藤健太郎"},{"version":"Featuring 星奏 P1","singer":"伊藤健太郎"}],"clean":""},{"song":"GREEN FOREST GREEN","role":"Maestro Fields","versions":[{"version":"星奏学院祭4-140824","singer":""},{"version":"Featuring 至誠館 P1-2","singer":""},{"version":"Featuring 至誠館Op2 P1-2","singer":""}],"clean":""},{"song":"G.L.A.M.O.R.O.U.S.","role":"東金千秋","versions":[{"version":"星奏学院祭4-140824","singer":"谷山紀章"},{"version":"Featuring 神南op2 P1","singer":"谷山紀章"},{"version":"Featuring 神南op2 P2","singer":"谷山紀章"}],"clean":""},{"song":"君色のCollage","role":"不動翔麻/不動葉介","versions":[{"version":"星奏学院祭4-140824","singer":"前野智昭/保村真"}],"clean":""},{"song":"May be true","role":"榊大地","versions":[{"version":"星奏学院祭4-140824","singer":"内田夕夜"}],"clean":""},{"song":"BOM DIA！","role":"水嶋新","versions":[{"version":"星奏学院祭4-140824","singer":"岸尾大辅"},{"version":"星奏学院祭6-P4","singer":"岸尾大辅"},{"version":"Featuring 神南op2 P2","singer":"岸尾大輔"},{"version":"Featuring 至誠館 P1-2","singer":"岸尾大輔"}],"clean":""},{"song":"URBAN METHOD","role":"衛藤桐也/吉羅暁彦","versions":[{"version":"星奏学院祭4-140824","singer":"日野聡/内田夕夜"},{"version":"星奏学院祭5-P2-3","singer":"日野聡/内田夕夜"}],"clean":""},{"song":"Music Bless You ～音楽の祝福を～","role":"金澤紘人","versions":[{"version":"星奏学院祭4-140824","singer":"石川英郎"}],"clean":""},{"song":"ROSY ROSA ROSY","role":"神南Ver.","versions":[{"version":"星奏学院祭4-140824","singer":""},{"version":"Featuring 神南op2 P1","singer":""},{"version":"Featuring 神南op2 P2","singer":""}],"clean":""},{"song":"OCEAN〜七つの海を越えて","role":"七海宗介","versions":[{"version":"星奏学院祭4-140824","singer":"増田ゆき"},{"version":"Featuring 天音 P1-2","singer":"増田ゆき"}],"clean":""},{"song":"FIREWORKS NIGHT","role":"不動翔麻","versions":[{"version":"星奏学院祭4-140824","singer":"前野智昭"}],"clean":""},{"song":"ずっとオレのそばで","role":"如月響也","versions":[{"version":"星奏学院祭4-140824","singer":"福山潤"},{"version":"星奏学院祭6-P4","singer":"福山潤"}],"clean":""},{"song":"Overture 序曲","role":"Maestro Fields","versions":[{"version":"星奏学院祭4-140824","singer":""}],"clean":""},{"song":"Re: CANTATA","role":"火原和樹/金澤紘人","versions":[{"version":"星奏学院祭5-P1","singer":"森田成一/石川英郎"}],"clean":""},{"song":"My Only One Song","role":"加地葵","versions":[{"version":"星奏学院祭5-P1","singer":"宮野真守"}],"clean":""},{"song":"SWEET LESSON","role":"須永巧","versions":[{"version":"星奏学院祭5-P1","singer":"武内駿輔"},{"version":"星奏学院祭5-P2-3","singer":"武内駿輔"},{"version":"星奏学院祭6-P4","singer":"武内駿輔"}],"clean":""},{"song":"Traumerei 〜夢の続き","role":"ニア","versions":[{"version":"星奏学院祭5-P1","singer":"佐藤 朱"},{"version":"Featuring 神南op2 P1","singer":"佐藤朱"},{"version":"Featuring 天音 P1-2","singer":"佐藤朱"}],"clean":""},{"song":"蒼穹のスコア～The score in blue","role":"Stella Quintet","versions":[{"version":"星奏学院祭5-P1","singer":""}],"clean":""},{"song":"Dear my friend","role":"冬海笙子/天羽菜美","versions":[{"version":"星奏学院祭5-P2-3","singer":"佐藤朱/増田ゆき"}],"clean":""},{"song":"INTERLUDE","role":"月森蓮","versions":[{"version":"星奏学院祭5-P2-3","singer":"谷山紀章"},{"version":"Featuring 神南op2 P2","singer":"谷山紀章"}],"clean":""},{"song":"Melodic Heart","role":"志水桂一/衛藤桐也","versions":[{"version":"星奏学院祭5-P2-3","singer":"福山 潤/日野聡"},{"version":"星奏学院祭6-P1","singer":"福山 潤/日野聡"}],"clean":""},{"song":"CROSS OVER","role":"柚木梓馬","versions":[{"version":"星奏学院祭5-P2-3","singer":"岸尾大輔"},{"version":"Featuring 神南op2 P1","singer":"岸尾大輔"}],"clean":""},{"song":"Again","role":"火積司郎","versions":[{"version":"星奏学院祭5-P2-3","singer":"森田成一"},{"version":"Featuring 至誠館 P1-2","singer":"森田成一"}],"clean":""},{"song":"Heart Stealer","role":"榊大地/土岐蓬生","versions":[{"version":"星奏学院祭5-P2-3","singer":"内田夕夜/石川英郎"},{"version":"星奏学院祭6-P1","singer":"内田夕夜/石川英郎"}],"clean":""},{"song":"BITTER LESSON","role":"小倉宗一郎","versions":[{"version":"星奏学院祭5-P2-3","singer":"野島裕史"},{"version":"星奏学院祭6-P3","singer":"野島裕史"}],"clean":""},{"song":"JOYFUL","role":"Maestro Fields","versions":[{"version":"星奏学院祭5-P4","singer":""}],"clean":""},{"song":"Vienne 〜ウィーンの森の物語","role":"王崎信武/不動葉介","versions":[{"version":"星奏学院祭5-P4","singer":"小西克幸/保村真"}],"clean":""},{"song":"Auftakt","role":"土浦梁太郎/吉羅暁彦","versions":[{"version":"星奏学院祭5-P4","singer":"伊藤健太郎/内田夕夜"}],"clean":""},{"song":"Ser Feliz","role":"水嶋新","versions":[{"version":"星奏学院祭5-P4","singer":"岸尾大辅"},{"version":"Featuring 至誠館Op2 P1-2","singer":"岸尾大辅"}],"clean":""},{"song":"KEEP or LOSE","role":"氷渡貴史","versions":[{"version":"星奏学院祭5-P4","singer":"三浦祥郎"}],"clean":""},{"song":"Waterside Harmony","role":"水嶋悠人/七海宗介","versions":[{"version":"星奏学院祭5-P4","singer":"水橋かおり/増田ゆき"},{"version":"星奏学院祭6-P2","singer":"水橋かおり/増田ゆき"},{"version":"Featuring 4 Schools P1-2","singer":"水橋かおり/増田ゆき"},{"version":"Featuring 神南op2 P1","singer":"水橋かおり/増田ゆき"},{"version":"Featuring 星奏 P2","singer":"水橋かおり/増田ゆき"}],"clean":""},{"song":"Heartful Sweets","role":"小日向奏","versions":[{"version":"星奏学院祭6-P1","singer":"高木礼子"}],"clean":""},{"song":"My word ～約束～","role":"王崎信武","versions":[{"version":"星奏学院祭6-P1","singer":"小西克幸"}],"clean":""},{"song":"If","role":"火原和樹","versions":[{"version":"星奏学院祭6-P1","singer":"森田成一"}],"clean":""},{"song":"MAKE U MINE","role":"東金千秋","versions":[{"version":"星奏学院祭6-P1","singer":"谷山紀章"},{"version":"Featuring 4 Schools P3-4","singer":"谷山紀章"}],"clean":""},{"song":"VERY BERRY","role":"須永巧","versions":[{"version":"星奏学院祭6-P2","singer":"武内駿輔"}],"clean":""},{"song":"SKYWALKER","role":"吉羅暁彦","versions":[{"version":"星奏学院祭6-P2","singer":"内田夕夜"}],"clean":""},{"song":"夜空のナイル","role":"ソラ","versions":[{"version":"星奏学院祭6-P2","singer":"KENN"},{"version":"Featuring 神南op2 P2","singer":"KENN"},{"version":"Featuring 天音 P1-2","singer":"KENN"}],"clean":""},{"song":"恋い蛍(螢火蟲)","role":"土岐蓬生","versions":[{"version":"星奏学院祭6-P2","singer":"石川英郎"},{"version":"Featuring 4 Schools P3-4","singer":"石川英郎"},{"version":"Featuring 神南op2 P1","singer":"石川英郎"},{"version":"Featuring 神南op2 P2","singer":"石川英郎"}],"clean":""},{"song":"ホシユメメグリ~星夢循環","role":"ソラ・不動翔麻","versions":[{"version":"星奏学院祭6-P2","singer":"KENN/前野智昭"}],"clean":""},{"song":"疾風怒濤 -MEIN HERZ","role":"冥加玲士","versions":[{"version":"星奏学院祭6-P3","singer":"日野聡"},{"version":"Featuring 4 Schools P1-2","singer":"日野聡"},{"version":"Featuring 天音 P1-2","singer":"日野聡"}],"clean":""},{"song":"ROMANCE","role":"月森蓮","versions":[{"version":"星奏学院祭6-P3","singer":"谷山紀章"}],"clean":""},{"song":"KNOCK","role":"不動翔麻","versions":[{"version":"星奏学院祭6-P3","singer":"前野智昭"}],"clean":""},{"song":"Ma Cherie","role":"不動業介","versions":[{"version":"星奏学院祭6-P3","singer":"保村真"}],"clean":""},{"song":"BEAUTY ∞ BEAST","role":"柚木梓馬","versions":[{"version":"星奏学院祭6-P3","singer":"岸尾大輔"}],"clean":""},{"song":"NOT A HERO","role":"火原和樹","versions":[{"version":"星奏学院祭6-P3","singer":"森田成一"}],"clean":""},{"song":"READY TO BOUNCE","role":"金澤紘人","versions":[{"version":"星奏学院祭6-P3","singer":"石川英郎"}],"clean":""},{"song":"君に捧げるHarmony","role":"Stella Quintet","versions":[{"version":"星奏学院祭6-P3","singer":""}],"clean":""},{"song":"背あわせ","role":"八木沢雪広/長嶺雅紀","versions":[{"version":"星奏学院祭6-P4","singer":"伊藤健太郎/保村真"},{"version":"Featuring 至誠館Op2 P1-2","singer":"伊藤健太郎/保村真"}],"clean":""},{"song":"It's Magical","role":"不動翔麻","versions":[{"version":"星奏学院祭6-P4","singer":"前野智昭"}],"clean":""},{"song":"ALL UP TO US","role":"衛藤桐也","versions":[{"version":"星奏学院祭6-P4","singer":"日野聡"}],"clean":""},{"song":"DUAL VOLTAGE","role":"東金千秋/土岐蓬生","versions":[{"version":"星奏学院祭6-P4","singer":"谷山紀章/石川英郎"},{"version":"Featuring 4 Schools P3-4","singer":"谷山紀章/石川英郎"}],"clean":""},{"song":"Happy time","role":"Maester fields","versions":[{"version":"星奏学院祭6-P4","singer":""}],"clean":""},{"song":"Summer Impression","role":"衛藤桐也","versions":[{"version":"Featuring 4 Schools P1-2","singer":"日野聡"}],"clean":""},{"song":"君のすべてを","role":"榊大地","versions":[{"version":"Featuring 4 Schools P1-2","singer":"内田夕夜"},{"version":"Featuring 星奏 P1","singer":"内田夕夜"}],"clean":""},{"song":"2nd STAGE","role":"如月律","versions":[{"version":"Featuring 4 Schools P1-2","singer":"小西克幸"},{"version":"Featuring 星奏 P2","singer":"小西克幸"}],"clean":""},{"song":"Laboratory Love","role":"天宮静","versions":[{"version":"Featuring 4 Schools P1-2","singer":"宮野真守"}],"clean":""},{"song":"LUMINANCE","role":"月森 蓮/金澤紘人","versions":[{"version":"Featuring 4 Schools P3-4","singer":"谷山紀章/石川英郎"}],"clean":""},{"song":"TE AMO! TE AMO!","role":"柚木梓馬","versions":[{"version":"Featuring 4 Schools P3-4","singer":"岸尾大輔"},{"version":"Featuring 至誠館 P1-2","singer":"岸尾大輔"}],"clean":""},{"song":"キンセンカ","role":"火積司郎","versions":[{"version":"Featuring 4 Schools P3-4","singer":"森田成一"},{"version":"Featuring 至誠館 P1-2","singer":"森田成一"}],"clean":""},{"song":"River ～想いは満ちて～","role":"八木沢雪広","versions":[{"version":"Featuring 4 Schools P3-4","singer":"伊藤健太郎"},{"version":"Featuring 至誠館 P1-2","singer":"伊藤健太郎"}],"clean":""},{"song":"Ambitious -青雲の志で","role":"至誠館高校","versions":[{"version":"Featuring 4 Schools P3-4","singer":""},{"version":"Featuring 至誠館 P1-2","singer":""},{"version":"Featuring 至誠館Op2 P1-2","singer":""}],"clean":""},{"song":"太陽の粒子","role":"土浦梁太郎","versions":[{"version":"Featuring 4 Schools P3-4","singer":"伊藤健太郎"},{"version":"Featuring 星奏 P2","singer":"伊藤健太郎"}],"clean":""},{"song":"PRECIOUS","role":"火原和樹","versions":[{"version":"Featuring 4 Schools P3-4","singer":"森田成一"}],"clean":""},{"song":"PiECE","role":"氷渡貴史","versions":[{"version":"Featuring 神南op2 P1","singer":"三浦祥郎"},{"version":"Featuring 天音 P1-2","singer":"三浦祥郎"}],"clean":""},{"song":"ESCORT","role":"芹沢睦","versions":[{"version":"Featuring 神南op2 P1","singer":"細谷佳正"},{"version":"Featuring 神南op2 P2","singer":"細谷佳正"}],"clean":""},{"song":"CRAZY CRAZE CRAZY","role":"神南 3人Ver.","versions":[{"version":"Featuring 神南op2 P1","singer":""},{"version":"Featuring 神南op2 P2","singer":""}],"clean":""},{"song":"海霧のかなたへ","role":"八木沢雪広","versions":[{"version":"Featuring 神南op2 P2","singer":"伊藤健太郎"},{"version":"Featuring 至誠館Op2 P1-2","singer":"伊藤健太郎"}],"clean":""},{"song":"Forever Forever","role":"Stella Quintet","versions":[{"version":"Featuring 神南op2 P2","singer":""}],"clean":""},{"song":"ELEVEN -フィールドの熱い風","role":"土浦梁太郎","versions":[{"version":"Featuring 至誠館 P1-2","singer":"伊藤健太郎"}],"clean":""},{"song":"青春エブリディ！","role":"狩野航/伊織浩平","versions":[{"version":"Featuring 至誠館 P1-2","singer":"岡本寛志/山本圭一郎"},{"version":"Featuring 至誠館Op2 P1-2","singer":"岡本寛志/山本圭一郎"}],"clean":""},{"song":"KEEP ON DASHING!!","role":"火原和樹","versions":[{"version":"Featuring 至誠館 P1-2","singer":"森田成一"}],"clean":""},{"song":"TANDEM RIDE","role":"長嶺雅紀","versions":[{"version":"Featuring 至誠館 P1-2","singer":"保村真"}],"clean":""},{"song":"恋心","role":"八木沢雪広","versions":[{"version":"Featuring 至誠館 P1-2","singer":"伊藤健太郎"}],"clean":""},{"song":"Beijo Beijo","role":"水嶋新","versions":[{"version":"Featuring 至誠館 P1-2","singer":"岸尾大辅"}],"clean":""},{"song":"勝利は我らに!","role":"至誠館高校","versions":[{"version":"Featuring 至誠館Op2 P1-2","singer":""}],"clean":""},{"song":"鼓動?","role":"如月響也","versions":[{"version":"Featuring 星奏 P1","singer":"福山潤"}],"clean":""},{"song":"空色の海","role":"如月律","versions":[{"version":"Featuring 星奏 P1","singer":"小西克幸"}],"clean":""},{"song":"STELLA SOL STELLA","role":"星奏Ver","versions":[{"version":"Featuring 星奏 P1","singer":""},{"version":"Featuring 星奏 P2","singer":""}],"clean":""},{"song":"Heart Killer","role":"榊大地/土岐蓬生","versions":[{"version":"Featuring 星奏 P2","singer":"内田夕夜/石川英郎"}],"clean":""},{"song":"お前ってヤツは！","role":"如月響也","versions":[{"version":"Featuring 星奏 P2","singer":"福山潤"}],"clean":""},{"song":"Eternal Garden","role":"天宮静","versions":[{"version":"Featuring 天音 P1-2","singer":"宮野真守"}],"clean":""},{"song":"FireWORKS NIGHT xmas special ver","role":"不動翔麻","versions":[{"version":"Featuring 天音 P1-2","singer":"前野智昭"}],"clean":""},{"song":"First Noel","role":"衛藤桐也","versions":[{"version":"Featuring 天音 P1-2","singer":"日野聡"}],"clean":""},{"song":"星のカケラ","role":"如月響也","versions":[{"version":"Featuring 天音 P1-2","singer":"福山潤"}],"clean":""},{"song":"Hear in Heaven","role":"志水桂一","versions":[{"version":"Featuring 天音 P1-2","singer":"福山潤"}],"clean":""},{"song":"7th Time Loop-Another Birthday","role":"土岐隼一","versions":[{"version":"7th Time Loop","singer":"土岐隼一"}],"clean":""},{"song":"AKHIDE-RAIN MAN","role":"AKHIDE","versions":[{"version":"名偵探柯南","singer":"AKHIDE"}],"clean":""},{"song":"Arashi-Beautiful Days","role":"Arashi","versions":[{"version":"5x20 Alll the BEST!! 1999-2019","singer":"嵐"}],"clean":""},{"song":"Arashi-One Love","role":"Arashi","versions":[{"version":"One Love","singer":"嵐"}],"clean":""},{"song":"Arashi-My Girl","role":"Arashi","versions":[{"version":"5x20 Alll the BEST!! 1999-2019","singer":"嵐"}],"clean":""},{"song":"Arashi-夏疾風","role":"Arashi","versions":[{"version":"夏疾風","singer":"嵐"}],"clean":""},{"song":"BREAKERZ-Miss Mystery","role":"BREAKERZ","versions":[{"version":"BREAKERZ×名探偵コナン COLLABORATION BEST","singer":"BREAKERZ"}],"clean":""},{"song":"Damette Delicious","role":"Brothers Conflict","versions":[{"version":"Brothers Conflict","singer":"平川大輔/鈴村健一/鳥海浩輔/武内健/小野大輔/浪川大輔/梶裕貴)"}],"clean":""},{"song":"14 to 1","role":"Brothers Conflict","versions":[{"version":"Brothers Conflict","singer":"ASAHINA Bros.+JULI"}],"clean":""},{"song":"365 Anniversary","role":"Brothers Conflict","versions":[{"version":"Brothers Conflict","singer":"平川大輔/鈴村健一/鳥海浩輔/武内健/小野大輔/浪川大輔/梶裕貴)"}],"clean":""},{"song":"Affections","role":"Tsubaki, Azusa","versions":[{"version":"Brothers Conflict","singer":"鈴村健一/鳥海浩輔"}],"clean":""},{"song":"Bright Breeze","role":"Natsume, Subaru","versions":[{"version":"Brothers Conflict","singer":"前野智昭/小野大輔"}],"clean":""},{"song":"DOUBLE CAST","role":"Tsubaki, Azusa","versions":[{"version":"Brothers Conflict","singer":"鈴村健一/鳥海浩輔"}],"clean":""},{"song":"I Love You が聞こえない","role":"Brothers Conflict","versions":[{"version":"Brothers Conflict","singer":"ASAHINA Bros.+JULI"}],"clean":""},{"song":"Innocent Blue-Tsubaki","role":"Azusa & Natsume","versions":[{"version":"Brothers Conflict","singer":"鈴村健一/鳥海浩輔/前野智昭"}],"clean":""},{"song":"Jealousness","role":"Tsubaki, Azusa & Natsume","versions":[{"version":"Brothers Conflict","singer":"鈴村健一/鳥海浩輔/前野智昭"}],"clean":""},{"song":"ONE","role":"Natsume & Fuuto","versions":[{"version":"Brothers Conflict","singer":"前野智昭/KENN"}],"clean":""},{"song":"Sunrise Days","role":"Tsubaki, Azusa","versions":[{"version":"Brothers Conflict","singer":"鈴村健一/鳥海浩輔"}],"clean":""},{"song":"挑発Machine Gun","role":"Brothers Conflict","versions":[{"version":"Brothers Conflict","singer":"琉生(武内健)/昴(小野大輔)/祈織(浪川大輔)/侑介(細谷佳正)/風斗(KENN)/弥(梶裕貴)/ジュリ(神谷浩史)"}],"clean":""},{"song":"Endless pain","role":"Van","versions":[{"version":"code realize","singer":"諏訪部順一"}],"clean":""},{"song":"Nobody Knows color","role":"Van","versions":[{"version":"code realize","singer":"諏訪部順一"}],"clean":""},{"song":"Shall We Dance","role":"Lupin","versions":[{"version":"code realize","singer":"前野智昭"}],"clean":""},{"song":"Sweetie Time","role":"Fran","versions":[{"version":"code realize","singer":"柿原徹也"}],"clean":""},{"song":"Trip to the moon","role":"Impey","versions":[{"version":"code realize","singer":"森久保祥太郎"}],"clean":""},{"song":"お望み通りに(隨心所欲)","role":"Lupin","versions":[{"version":"code realize","singer":"前野智昭"}],"clean":""},{"song":"優しい予感 -in the morning rays","role":"Fran","versions":[{"version":"code realize","singer":"柿原徹也"}],"clean":""},{"song":"幸せのうまれる場所(幸福之地)難","role":"Saint","versions":[{"version":"code realize","singer":"平川大輔"}],"clean":""},{"song":"運命の旅人","role":"Saint","versions":[{"version":"code realize","singer":"平川大輔"}],"clean":""},{"song":"世界はまわると言うけれど","role":"GARNET CROW","versions":[{"version":"LOCKS","singer":"GARNET CROW"}],"clean":""},{"song":"悲しいほど 今日の夕陽 きれいだね","role":"Grram","versions":[{"version":"名偵探柯南","singer":"Grram"}],"clean":""},{"song":"夢への地図","role":"Hosoya Yoshimasa","versions":[{"version":"花牌情緣","singer":"細谷佳正"}],"clean":""},{"song":"いつも ずっと","role":"Hirakawa Daisuke","versions":[{"version":"元氣少女緣結神","singer":"平川大輔"}],"clean":""},{"song":"Hello Mr My Yesterday","role":"Hundred Percent Free","versions":[{"version":"名偵探柯南","singer":"Hundred Percent Free"}],"clean":""},{"song":"キミがいれば","role":"Iori","versions":[{"version":"名偵探柯南","singer":"伊織"}],"clean":""},{"song":"True Love","role":"Jyunichi Suwabe","versions":[{"version":"Cover - Love","singer":"諏訪部順一"}],"clean":""},{"song":"恋しくて","role":"Jyunichi Suwabe","versions":[{"version":"Cover - Love","singer":"諏訪部順一"}],"clean":""},{"song":"情熱","role":"Jyunichi Suwabe","versions":[{"version":"Cover - Love","singer":"諏訪部順一"}],"clean":""},{"song":"愛撫","role":"Jyunichi Suwabe","versions":[{"version":"Cover - Love","singer":"諏訪部順一"}],"clean":""},{"song":"KATTUN--青春アミゴ","role":"KATTUN","versions":[{"version":"青春アミゴ","singer":"KATTUN"}],"clean":""},{"song":"Komatsu Miho-願い事ひとつだけ","role":"Komatsu Miho","versions":[{"version":"名偵探柯南","singer":"小松未歩"}],"clean":""},{"song":"Tomorrow is the last Time","role":"Kuraki Mai","versions":[{"version":"倉木麻衣×名探偵コナン COLLABORATION BEST 21 -真実はいつも歌にある！- [Disc 2]","singer":"倉木麻衣"}],"clean":""},{"song":"Your Best Friend","role":"Kuraki Mai","versions":[{"version":"倉木麻衣×名探偵コナン COLLABORATION BEST 21 -真実はいつも歌にある！- [Disc 2]","singer":"倉木麻衣"}],"clean":""},{"song":"恋に恋して","role":"Kuraki Mai","versions":[{"version":"倉木麻衣×名探偵コナン COLLABORATION BEST 21 -真実はいつも歌にある！- [Disc 2]","singer":"倉木麻衣"}],"clean":""},{"song":"Secret of My Heart","role":"Kuraki Mai","versions":[{"version":"倉木麻衣×名探偵コナン COLLABORATION BEST 21 -真実はいつも歌にある！- [Disc 2]","singer":"倉木麻衣"}],"clean":""},{"song":"Summer Time Gone","role":"Kuraki Mai","versions":[{"version":"倉木麻衣×名探偵コナン COLLABORATION BEST 21 -真実はいつも歌にある！- [Disc 2]","singer":"倉木麻衣"}],"clean":""},{"song":"Absinthe-夢幻","role":"土岐蓬生","versions":[{"version":"Kiniro no Corda 3","singer":"石川英郎"}],"clean":""},{"song":"La Corda-Again","role":"火積司郎","versions":[{"version":"Kiniro no Corda 3","singer":"森田成一"}],"clean":"Again"},{"song":"La Corda-AIRSTREAM","role":"土浦梁太郎","versions":[{"version":"Kiniro no Corda 2","singer":"伊藤健太郎"}],"clean":"AIRSTREAM"},{"song":"La Corda-Ambitious","role":"至誠館高校","versions":[{"version":"Kiniro no Corda 3","singer":"伊藤健太郎/岸尾大輔/森田成一"}],"clean":"Ambitious"},{"song":"La Corda-Andante-至誠館高校","role":"至誠館高校","versions":[{"version":"Kiniro no Corda 3","singer":"伊藤健太郎/岸尾大輔/森田成一"}],"clean":"Andante-至誠館高校"},{"song":"La Corda-AQUA BLUE","role":"月森蓮","versions":[{"version":"Kiniro no Corda 1","singer":"谷山紀章"}],"clean":"AQUA BLUE"},{"song":"La Corda-Another Revolution","role":"土浦梁太郎","versions":[{"version":"Kiniro no Corda 1","singer":"伊藤健太郎"}],"clean":"Another Revolution"},{"song":"La Corda-Auftakt","role":"土浦梁太郎 吉羅暁彦","versions":[{"version":"Kiniro no Corda 2","singer":"伊藤健太郎/内田夕夜"}],"clean":"Auftakt"},{"song":"La Corda-Beijo Beijo","role":"水嶋新","versions":[{"version":"Kiniro no Corda 3","singer":"岸尾大輔"}],"clean":"Beijo Beijo"},{"song":"La Corda-Believe","role":"土浦梁太郎","versions":[{"version":"Kiniro no Corda 2","singer":"伊藤健太郎"}],"clean":"Believe"},{"song":"La Corda-BELOVED","role":"如月律_如月響也","versions":[{"version":"Kiniro no Corda 4","singer":"小西克幸/福山潤"}],"clean":"BELOVED"},{"song":"La Corda-Brightly 輝きの中で","role":"王崎信武","versions":[{"version":"Kiniro no Corda 1","singer":"小西克幸"}],"clean":"Brightly 輝きの中で"},{"song":"La Corda-BOM DIA!","role":"水嶋新","versions":[{"version":"Kiniro no Corda 3","singer":"岸尾大輔"}],"clean":"BOM DIA!"},{"song":"La Corda-Clockwork Town-","role":"金澤紘人 吉羅暁彦","versions":[{"version":"Kiniro no Corda 2","singer":"石川英郎/内田夕夜"}],"clean":"Clockwork Town"},{"song":"La Corda-Corona 光冠","role":"月森蓮 加地葵","versions":[{"version":"Kiniro no Corda 2","singer":"谷山紀章/宮野真守"}],"clean":"Corona 光冠"},{"song":"La Corda-Cosmic Lucky Day","role":"加地葵","versions":[{"version":"Kiniro no Corda 2","singer":"宮野真守"}],"clean":"Cosmic Lucky Day"},{"song":"La Corda-CRESCENDO","role":"Stella Quintet","versions":[{"version":"Kiniro no Corda 1","singer":"Stella Quintet"}],"clean":"CRESCENDO"},{"song":"La Corda-Cross over","role":"柚木梓馬","versions":[{"version":"Kiniro no Corda 2","singer":"岸尾大輔"}],"clean":"Cross over"},{"song":"La Corda-Days gone by梦の中の梦","role":"金澤紘人","versions":[{"version":"Kiniro no Corda 1","singer":"石川英郎"}],"clean":"Days gone by梦の中の梦"},{"song":"La Corda-December Dream","role":"加地葵 王崎信武","versions":[{"version":"Kiniro no Corda 2","singer":"宮野真守/小西克幸"}],"clean":"December Dream"},{"song":"La Corda-destination","role":"月森蓮","versions":[{"version":"Kiniro no Corda 2","singer":"谷山紀章"}],"clean":"destination"},{"song":"La Corda-DIANA","role":"柚木梓馬","versions":[{"version":"Kiniro no Corda 1","singer":"岸尾大輔"}],"clean":"DIANA"},{"song":"La Corda-DUAL VOLTAGE","role":"東金千秋_土岐蓬","versions":[{"version":"Kiniro no Corda 3","singer":"谷山紀章/石川英郎"}],"clean":"DUAL VOLTAGE"},{"song":"La Corda-ESCORT","role":"芹沢睦","versions":[{"version":"Kiniro no Corda 3","singer":"細谷佳正"}],"clean":"ESCORT"},{"song":"La Corda-Eternal Garden","role":"天宮静","versions":[{"version":"Kiniro no Corda 3","singer":"宮野真守"}],"clean":"Eternal Garden"},{"song":"La Corda-Fairy Humming","role":"志水桂一","versions":[{"version":"Kiniro no Corda 2","singer":"福山潤"}],"clean":"Fairy Humming"},{"song":"La Corda-FATE~真冬の太陽","role":"月森蓮 土浦梁太郎","versions":[{"version":"Kiniro no Corda 2","singer":"谷山紀章/伊藤健太郎"}],"clean":"FATE~真冬の太陽"},{"song":"La Corda-FEMME FATALE","role":"冥加玲士","versions":[{"version":"Kiniro no Corda 3","singer":"日野聡"}],"clean":"FEMME FATALE"},{"song":"La Corda-Fill My Heart","role":"月森蓮","versions":[{"version":"Kiniro no Corda 1","singer":"谷山紀章"}],"clean":"Fill My Heart"},{"song":"La Corda-First Noel","role":"衛藤桐也","versions":[{"version":"Kiniro no Corda 2","singer":"日野聡"}],"clean":"First Noel"},{"song":"La Corda-Flame","role":"月森蓮","versions":[{"version":"Kiniro no Corda 1","singer":"谷山紀章"}],"clean":"Flame"},{"song":"La Corda-forever forever","role":"Stella Quintet","versions":[{"version":"Kiniro no Corda 2","singer":"Stella Quintet"}],"clean":"forever forever"},{"song":"La Corda-Green Forest Green-Maestro Fields","role":"Maestro Fields","versions":[{"version":"Kiniro no Corda 3","singer":"Maestro Fields"}],"clean":"Green Forest Green-Maestro Fields"},{"song":"La Corda-Hallelujah","role":"Stella Quintet","versions":[{"version":"Kiniro no Corda 2","singer":"Stella Quintet"}],"clean":"Hallelujah"},{"song":"La Corda-Happy Time","role":"Stella Quintet","versions":[{"version":"Kiniro no Corda 1","singer":"Stella Quintet"}],"clean":"Happy Time"},{"song":"La Corda-Harmony-君に捧げる","role":"Stella Quintet","versions":[{"version":"Kiniro no Corda 1","singer":"Stella Quintet"}],"clean":"Harmony-君に捧げる"},{"song":"La Corda-Heart Killer","role":"榊大地 土岐蓬生","versions":[{"version":"Kiniro no Corda 3","singer":"内田夕夜/石川英郎"}],"clean":"Heart Killer"},{"song":"La Corda-Heart Stealer","role":"榊大地 土岐蓬生","versions":[{"version":"Kiniro no Corda 3","singer":"内田夕夜/石川英郎"}],"clean":"Heart Stealer"},{"song":"La Corda-Here I heaven","role":"志水桂一","versions":[{"version":"Kiniro no Corda 2","singer":"福山潤"}],"clean":"Here I heaven"},{"song":"La Corda-Hypnosis 微睡の罠","role":"土岐蓬生","versions":[{"version":"Kiniro no Corda 3","singer":"石川英郎"}],"clean":"Hypnosis 微睡の罠"},{"song":"La Corda-I CAN MAKE IT","role":"衛藤桐也","versions":[{"version":"Kiniro no Corda 2","singer":"日野聡"}],"clean":"I CAN MAKE IT"}];
+    const CSV_URL = './Songlist.csv';
+    const CACHE_KEY = 'corda_songs_v1';
+    const CACHE_TIME_KEY = 'corda_songs_time_v1';
 
-    // ---- State ----
+    let SONGS = [];
     let query = '';
     let seriesFilter = '';
     let singerFilter = '';
@@ -436,11 +300,144 @@
     const totalEl = document.getElementById('total');
     const toTop = document.getElementById('toTop');
     const btnReset = document.getElementById('btnReset');
+    const btnRefresh = document.getElementById('btnRefresh');
+    const statusEl = document.getElementById('status');
+    const lastUpdateEl = document.getElementById('lastUpdate');
+    const toastEl = document.getElementById('toast');
 
-    totalEl.textContent = SONGS.length;
+    function toast(msg, ms = 2200) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastEl._t);
+      toastEl._t = setTimeout(() => toastEl.classList.remove('show'), ms);
+    }
+    function setStatus(msg, type = '') {
+      statusEl.textContent = msg || '';
+      statusEl.className = 'status-bar' + (type ? ' ' + type : '');
+    }
+    function normalize(s) {
+      return (s || '').toLowerCase().replace(/\s+/g, '');
+    }
 
-    // Build singer dropdown
-    (function buildSingers() {
+    function parseCSV(text) {
+      const rows = [];
+      let i = 0, field = '', row = [], inQuotes = false;
+      text = text.replace(/^\uFEFF/, '');
+      while (i < text.length) {
+        const c = text[i];
+        if (inQuotes) {
+          if (c === '"') {
+            if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+            inQuotes = false; i++; continue;
+          }
+          field += c; i++; continue;
+        }
+        if (c === '"') { inQuotes = true; i++; continue; }
+        if (c === ',') { row.push(field); field = ''; i++; continue; }
+        if (c === '\n' || c === '\r') {
+          if (c === '\r' && text[i + 1] === '\n') i++;
+          row.push(field); field = '';
+          if (row.length > 1 || (row[0] && row[0].trim())) rows.push(row);
+          row = []; i++; continue;
+        }
+        field += c; i++;
+      }
+      if (field || row.length) {
+        row.push(field);
+        if (row.length > 1 || (row[0] && row[0].trim())) rows.push(row);
+      }
+      return rows;
+    }
+
+    function rowsToSongs(rows) {
+      if (!rows.length) return [];
+      const data = rows.slice(1);
+      const songs = [];
+      const seen = new Set();
+      for (const row of data) {
+        if (!row || !row[0] || !String(row[0]).trim()) continue;
+        const songName = String(row[0]).trim();
+        const role = (row[1] || '').trim();
+        if (songName.startsWith('}') || songName.startsWith('|')) continue;
+        if (songName.includes('新增歌曲清單')) continue;
+        const versions = [];
+        for (let i = 2; i < Math.min(row.length, 12); i += 2) {
+          const ver = (row[i] || '').trim();
+          const singer = (row[i + 1] || '').trim();
+          if (ver || singer) versions.push({ version: ver, singer });
+        }
+        if (versions.length === 1 && versions[0].version === '新增歌曲清單') continue;
+        const key = songName.toLowerCase() + '|' + role.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const clean = songName.startsWith('La Corda-')
+          ? songName.slice('La Corda-'.length).replace(/^[\s\-_]+/, '')
+          : '';
+        songs.push({ song: songName, role, versions, clean });
+      }
+      return songs;
+    }
+
+    async function fetchCSV(force = false) {
+      btnRefresh.classList.add('spin');
+      setStatus(force ? '正在從 GitHub 更新…' : '載入中…');
+      try {
+        if (!force) {
+          const cached = localStorage.getItem(CACHE_KEY);
+          const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+          if (cached) {
+            SONGS = JSON.parse(cached);
+            applySongs();
+            setStatus('');
+            if (cachedTime) lastUpdateEl.textContent = '快取：' + new Date(+cachedTime).toLocaleString('zh-HK');
+            fetchAndCache(false).catch(() => {});
+            return;
+          }
+        }
+        await fetchAndCache(force);
+      } catch (err) {
+        console.error(err);
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          SONGS = JSON.parse(cached);
+          applySongs();
+          setStatus('離線模式（使用本地快取）', 'error');
+          toast('網絡失敗，使用本地快取');
+        } else {
+          grid.innerHTML = '<div class="empty"><div class="emoji">⚠️</div>無法載入 Songlist.csv<br><small>' + (err.message || err) + '</small></div>';
+          setStatus('載入失敗：' + (err.message || err), 'error');
+        }
+      } finally {
+        btnRefresh.classList.remove('spin');
+      }
+    }
+
+    async function fetchAndCache(showToast) {
+      const res = await fetch(CSV_URL + '?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      const rows = parseCSV(text);
+      const songs = rowsToSongs(rows);
+      if (!songs.length) throw new Error('CSV 沒有有效歌曲');
+      SONGS = songs;
+      localStorage.setItem(CACHE_KEY, JSON.stringify(songs));
+      const now = Date.now();
+      localStorage.setItem(CACHE_TIME_KEY, String(now));
+      applySongs();
+      lastUpdateEl.textContent = '更新於 ' + new Date(now).toLocaleString('zh-HK');
+      setStatus('');
+      if (showToast) toast('已更新 ' + songs.length + ' 首歌曲');
+    }
+
+    function applySongs() {
+      totalEl.textContent = SONGS.length;
+      rebuildSingerSelect();
+      render();
+    }
+
+    function rebuildSingerSelect() {
+      const current = fSinger.value;
+      while (fSinger.options.length > 1) fSinger.remove(1);
       const map = {};
       SONGS.forEach(s => {
         s.versions.forEach(v => {
@@ -451,17 +448,20 @@
           });
         });
       });
-      const list = Object.entries(map).sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ja'));
-      list.forEach(([name, cnt]) => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = `${name} (${cnt})`;
-        fSinger.appendChild(opt);
-      });
-    })();
-
-    function normalize(s) {
-      return (s || '').toLowerCase().replace(/\s+/g, '');
+      Object.entries(map)
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ja'))
+        .forEach(([name, cnt]) => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name + ' (' + cnt + ')';
+          fSinger.appendChild(opt);
+        });
+      if ([...fSinger.options].some(o => o.value === current)) {
+        fSinger.value = current;
+      } else {
+        fSinger.value = '';
+        singerFilter = '';
+      }
     }
 
     function getSeriesTags(song) {
@@ -479,14 +479,6 @@
         else if (/柯南|名探偵|Kuraki|GARNET|BREAKERZ|ZARD|Hundred Percent|Grram|Iori/i.test(ver + song.song)) tags.add('柯南／動漫主題曲');
         else if (ver) tags.add('其他');
       });
-      if (song.song.startsWith('La Corda-')) {
-        // ensure Kiniro tag from title path
-        song.versions.forEach(v => {
-          if (/Kiniro no Corda/.test(v.version || '')) {
-            tags.add(v.version);
-          }
-        });
-      }
       return [...tags];
     }
 
@@ -502,13 +494,10 @@
       }
       return false;
     }
-
     function matchSeries(song) {
       if (!seriesFilter) return true;
-      const tags = getSeriesTags(song);
-      return tags.includes(seriesFilter);
+      return getSeriesTags(song).includes(seriesFilter);
     }
-
     function matchSinger(song) {
       if (!singerFilter) return true;
       return song.versions.some(v => {
@@ -516,7 +505,6 @@
         return v.singer.replace(/\//g, '／').split('／').some(p => p.trim() === singerFilter);
       });
     }
-
     function highlight(text, q) {
       if (!q || !text) return text || '';
       const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -524,33 +512,21 @@
         return text.replace(new RegExp('(' + escaped + ')', 'gi'), '<span class="highlight">$1</span>');
       } catch { return text; }
     }
-
     function badgeClass(tag) {
       if (tag.startsWith('Kiniro')) return 'purple';
       if (tag === 'Featuring') return 'green';
-      if (tag === '星奏学院祭') return '';
       if (tag.includes('柯南') || tag === 'Brothers Conflict' || tag === 'Code:Realize') return 'orange';
       return '';
     }
-
     function displayTitle(song) {
       if (song.clean) return highlight(song.clean, query);
       return highlight(song.song, query);
     }
-
     function sortSongs(list) {
       const arr = [...list];
-      if (sortBy === 'name') {
-        arr.sort((a, b) => {
-          const an = (a.clean || a.song).toLowerCase();
-          const bn = (b.clean || b.song).toLowerCase();
-          return an.localeCompare(bn, 'ja');
-        });
-      } else if (sortBy === 'role') {
-        arr.sort((a, b) => (a.role || '').localeCompare(b.role || '', 'ja'));
-      } else if (sortBy === 'versions') {
-        arr.sort((a, b) => b.versions.length - a.versions.length);
-      }
+      if (sortBy === 'name') arr.sort((a, b) => (a.clean || a.song).localeCompare(b.clean || b.song, 'ja'));
+      else if (sortBy === 'role') arr.sort((a, b) => (a.role || '').localeCompare(b.role || '', 'ja'));
+      else if (sortBy === 'versions') arr.sort((a, b) => b.versions.length - a.versions.length);
       return arr;
     }
 
@@ -558,40 +534,28 @@
       let list = SONGS.filter(s => matchQuery(s, query) && matchSeries(s) && matchSinger(s));
       list = sortSongs(list);
       shownEl.textContent = list.length;
-
+      if (!SONGS.length) return;
       if (list.length === 0) {
-        grid.innerHTML = `<div class="empty"><div class="emoji">📭</div>找不到相關歌曲<br><small>試試其他關鍵字或清除篩選</small></div>`;
+        grid.innerHTML = '<div class="empty"><div class="emoji">📭</div>找不到相關歌曲<br><small>試試其他關鍵字或清除篩選</small></div>';
         return;
       }
-
       grid.innerHTML = list.map(s => {
         const tags = getSeriesTags(s);
         const badgeHtml = tags.slice(0, 3).map(t =>
-          `<span class="badge ${badgeClass(t)}">${t}</span>`
+          '<span class="badge ' + badgeClass(t) + '">' + t + '</span>'
         ).join(' ');
-
-        const versHtml = s.versions.map(v => `
-          <div class="ver-row">
-            <div class="v-name">${highlight(v.version || '—', query)}</div>
-            ${v.singer ? `<div class="v-singer">${highlight(v.singer, query)}</div>` : ''}
-          </div>
-        `).join('');
-
-        return `
-          <article class="card">
-            <div>${badgeHtml || '<span class="badge">歌曲</span>'}</div>
-            <div class="card-title">${displayTitle(s)}</div>
-            ${s.role ? `<div class="card-sub">👤 ${highlight(s.role, query)}</div>` : ''}
-            <div class="meta">
-              <div><strong>版本數：</strong>${s.versions.length}</div>
-            </div>
-            <div class="ver-list">${versHtml}</div>
-          </article>
-        `;
+        const versHtml = s.versions.map(v =>
+          '<div class="ver-row"><div class="v-name">' + highlight(v.version || '—', query) + '</div>' +
+          (v.singer ? '<div class="v-singer">' + highlight(v.singer, query) + '</div>' : '') + '</div>'
+        ).join('');
+        return '<article class="card"><div>' + (badgeHtml || '<span class="badge">歌曲</span>') + '</div>' +
+          '<div class="card-title">' + displayTitle(s) + '</div>' +
+          (s.role ? '<div class="card-sub">👤 ' + highlight(s.role, query) + '</div>' : '') +
+          '<div class="meta"><strong>版本數：</strong>' + s.versions.length + '</div>' +
+          '<div class="ver-list">' + versHtml + '</div></article>';
       }).join('');
     }
 
-    // Events
     let timer;
     qEl.addEventListener('input', () => {
       clearTimeout(timer);
@@ -602,43 +566,28 @@
       }, 100);
     });
     clearBtn.addEventListener('click', () => {
-      qEl.value = '';
-      query = '';
-      clearBtn.classList.remove('show');
-      qEl.focus();
-      render();
+      qEl.value = ''; query = ''; clearBtn.classList.remove('show'); qEl.focus(); render();
     });
-    fSeries.addEventListener('change', () => {
-      seriesFilter = fSeries.value;
-      render();
-    });
-    fSinger.addEventListener('change', () => {
-      singerFilter = fSinger.value;
-      render();
-    });
-    sortEl.addEventListener('change', () => {
-      sortBy = sortEl.value;
-      render();
-    });
+    fSeries.addEventListener('change', () => { seriesFilter = fSeries.value; render(); });
+    fSinger.addEventListener('change', () => { singerFilter = fSinger.value; render(); });
+    sortEl.addEventListener('change', () => { sortBy = sortEl.value; render(); });
     btnReset.addEventListener('click', () => {
-      qEl.value = '';
-      query = '';
-      clearBtn.classList.remove('show');
-      fSeries.value = '';
-      seriesFilter = '';
-      fSinger.value = '';
-      singerFilter = '';
-      sortEl.value = 'name';
-      sortBy = 'name';
+      qEl.value = ''; query = ''; clearBtn.classList.remove('show');
+      fSeries.value = ''; seriesFilter = '';
+      fSinger.value = ''; singerFilter = '';
+      sortEl.value = 'name'; sortBy = 'name';
       render();
     });
-
+    btnRefresh.addEventListener('click', () => fetchCSV(true));
     window.addEventListener('scroll', () => {
       toTop.classList.toggle('show', window.scrollY > 400);
     }, { passive: true });
     toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
-    render();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+    fetchCSV(false);
   </script>
 </body>
 </html>
