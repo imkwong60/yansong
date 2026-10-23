@@ -87,14 +87,17 @@
     .btn.ghost:hover, .btn.ghost.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
     .btn.lyrics {
       border-color: rgba(167,139,250,0.4); color: var(--purple); background: rgba(167,139,250,0.1);
-      font-weight: 600; width: 100%; margin-top: 4px; padding: 9px 14px;
+      font-weight: 600; flex: 1; padding: 9px 10px; min-width: 0;
+    }
+    .btn.lyrics:disabled {
+      opacity: 0.35; cursor: not-allowed; filter: grayscale(0.6);
     }
     .btn.apple {
       border-color: rgba(250,45,72,0.4); color: #fa2d48; background: rgba(250,45,72,0.1);
-      font-weight: 600; width: 100%; margin-top: 4px; padding: 9px 14px;
+      font-weight: 600; flex: 1; padding: 9px 10px; min-width: 0;
     }
     .card-actions {
-      display: flex; flex-direction: column; gap: 0;
+      display: flex; gap: 8px; margin-top: 4px;
     }
 
     .toolbar {
@@ -589,7 +592,7 @@
           (v.singer ? '<div class="v-singer">' + highlight(v.singer, query) + '</div>' : '') + '</div>';
         var lyricsBtn = s.lyrics
           ? '<button type="button" class="btn lyrics" data-lyrics="' + encodeURIComponent(s.lyrics) + '" data-title="' + encodeURIComponent(s.song) + '">📝 歌詞</button>'
-          : '';
+          : '<button type="button" class="btn lyrics" disabled>📝 歌詞</button>';
         var appleBtn = '<button type="button" class="btn apple" data-song="' + encodeURIComponent(s.song) + '">🎵 Apple Music</button>';
         return '<article class="card"><div>' + badge + '</div>' +
           '<div class="card-title">' + highlight(s.song, query) + '</div>' +
@@ -680,9 +683,67 @@
     }, { passive: true });
     toTop.addEventListener('click', function() { window.scrollTo({ top: 0, behavior: 'smooth' }); });
 
+    // Prefer clipboard API on HTTPS, fallback to execCommand (no readonly, left:-9999px)
+    function copyTextBest(text) {
+      // 1. Modern clipboard (best on HTTPS / iOS)
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          // Fire and hope — in user gesture this is usually reliable on HTTPS
+          navigator.clipboard.writeText(text);
+          return true;
+        } catch (e) {}
+      }
+      // 2. Fallback execCommand
+      var ok = false;
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        // no readonly — can cause issues on some iOS versions
+        ta.style.cssText =
+          'position:fixed;top:0;left:-9999px;width:1px;height:1px;' +
+          'padding:0;border:0;outline:0;box-shadow:none;background:transparent;';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, text.length);
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (e) {
+        ok = false;
+      }
+      return ok;
+    }
+
+    function openMusicApp() {
+      // Programmatic <a> click is more reliable than location.href in PWA standalone
+      var a = document.createElement('a');
+      a.href = 'music://';
+      var isPWA = (navigator.standalone === true) ||
+                  (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+      if (isPWA) a.target = '_blank';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() {
+        if (a.parentNode) a.parentNode.removeChild(a);
+      }, 100);
+    }
+
+    function handleAppleMusic(songName) {
+      if (!songName) return;
+      var copied = copyTextBest(songName);
+      if (copied) {
+        toast('已複製：「' + songName + '」\n到 Music 搜尋框長按 → 貼上', 3500);
+      } else {
+        toast('請手動輸入：「' + songName + '」', 3500);
+      }
+      openMusicApp();
+    }
+
     grid.addEventListener('click', function(e) {
       var lyricsBtn = e.target.closest('.btn.lyrics');
       if (lyricsBtn) {
+        if (lyricsBtn.disabled) return;
         e.preventDefault();
         openLyrics(decodeURIComponent(lyricsBtn.dataset.lyrics || ''), decodeURIComponent(lyricsBtn.dataset.title || ''));
         return;
@@ -691,9 +752,7 @@
       if (appleBtn) {
         e.preventDefault();
         var songName = decodeURIComponent(appleBtn.dataset.song || '');
-        if (!songName) return;
-        var url = 'https://music.apple.com/hk/search?term=' + encodeURIComponent(songName);
-        window.open(url, '_blank', 'noopener,noreferrer');
+        handleAppleMusic(songName);
       }
     });
     lyricsClose.addEventListener('click', closeLyrics);
